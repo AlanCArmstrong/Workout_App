@@ -59,7 +59,9 @@ export async function POST(request: Request) {
             setMax: 5,
             setMin: 3,
             repsToSetsMultiplier: 2.0,
-            weightRange: 10.0
+            weightRange: 10.0,
+            weightIncrement: 2.5,
+            overEstimateTolerance: 0.5
           }
         },
         growthSettings: {

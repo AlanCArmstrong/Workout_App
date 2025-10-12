@@ -37,7 +37,9 @@ export async function PATCH(request: Request) {
       setMax,
       setMin,
       repsToSetsMultiplier,
-      weightRange
+      weightRange,
+      weightIncrement,
+      overEstimateTolerance
     } = body
 
     const rotation = await prisma.workoutRotation.findFirst()
@@ -59,7 +61,9 @@ export async function PATCH(request: Request) {
         setMax,
         setMin,
         repsToSetsMultiplier,
-        weightRange
+        weightRange,
+        weightIncrement,
+        overEstimateTolerance
       },
       create: {
         rotationId: rotation.id,
@@ -71,7 +75,9 @@ export async function PATCH(request: Request) {
         setMax,
         setMin,
         repsToSetsMultiplier,
-        weightRange
+        weightRange,
+        weightIncrement: weightIncrement ?? 2.5,
+        overEstimateTolerance: overEstimateTolerance ?? 0.5
       }
     })
 

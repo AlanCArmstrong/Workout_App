@@ -19,6 +19,8 @@ interface PriorityRules {
   setMin: number
   repsToSetsMultiplier: number
   weightRange: number
+  weightIncrement: number
+  overEstimateTolerance: number
 }
 
 interface GrowthSettings {
@@ -32,6 +34,40 @@ interface GrowthSettings {
 interface Priority {
   type: 'rep' | 'set' | 'weight' | 'partial'
   priority: number
+}
+
+/**
+ * Round weight to nearest increment (2.5 lb, 5 lb, etc.)
+ */
+function roundWeight(weight: number, increment: number): number {
+  return Math.round(weight / increment) * increment
+}
+
+/**
+ * Calculate partial reps needed to match target load
+ * Returns rounded partial reps
+ */
+function calculatePartialReps(
+  currentLoad: number,
+  targetLoad: number,
+  weight: number,
+  tolerancePercent: number
+): number {
+  const loadGap = targetLoad - currentLoad
+  
+  // If we're within tolerance above target, no partial reps needed
+  const tolerance = targetLoad * (tolerancePercent / 100)
+  if (loadGap < 0 && Math.abs(loadGap) <= tolerance) {
+    return 0
+  }
+  
+  // If we're below target, calculate partial reps
+  if (loadGap > 0) {
+    const partialReps = Math.round(loadGap / weight)
+    return Math.max(0, partialReps)
+  }
+  
+  return 0
 }
 
 /**
@@ -153,6 +189,7 @@ function canIncreaseWeight(
 
 /**
  * Increase weight, reset reps and sets to minimum
+ * Applies rounding and calculates partial reps from leftover load
  */
 function increaseWeight(
   exercise: DayExercise,
@@ -161,12 +198,30 @@ function increaseWeight(
 ): DayExercise {
   const increase = calculateWeightIncrease(exercise.weight, settings)
   
+  // Calculate target total load
+  const currentTotalLoad = calculateTotalLoad(exercise)
+  const targetTotalLoad = currentTotalLoad + (increase * rules.repMin * rules.setMin)
+  
+  // Round new weight to nearest increment
+  const newWeight = roundWeight(exercise.weight + increase, rules.weightIncrement)
+  
+  // Calculate load with new weight at minimum reps/sets
+  const newBaseLoad = newWeight * rules.repMin * rules.setMin
+  
+  // Calculate partial reps to match target load
+  const partialReps = calculatePartialReps(
+    newBaseLoad,
+    targetTotalLoad,
+    newWeight,
+    rules.overEstimateTolerance
+  )
+  
   return {
     ...exercise,
-    weight: exercise.weight + increase,
+    weight: newWeight,
     reps: rules.repMin,   // Reset to minimum
     sets: rules.setMin,   // Reset to minimum
-    partialReps: 0        // Clear partial reps
+    partialReps           // Calculated from load gap
   }
 }
 

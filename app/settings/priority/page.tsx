@@ -17,6 +17,8 @@ interface PriorityRules {
   setMin: number
   repsToSetsMultiplier: number
   weightRange: number
+  weightIncrement: number
+  overEstimateTolerance: number
 }
 
 export default function ChangePriorityPage() {
@@ -34,6 +36,8 @@ export default function ChangePriorityPage() {
   const [setMin, setSetMin] = useState(3)
   const [repsToSetsMultiplier, setRepsToSetsMultiplier] = useState(2.0)
   const [weightRange, setWeightRange] = useState(10.0)
+  const [weightIncrement, setWeightIncrement] = useState(2.5)
+  const [overEstimateTolerance, setOverEstimateTolerance] = useState(0.5)
 
   useEffect(() => {
     fetchRules()
@@ -55,6 +59,8 @@ export default function ChangePriorityPage() {
           setSetMin(data.setMin)
           setRepsToSetsMultiplier(data.repsToSetsMultiplier)
           setWeightRange(data.weightRange)
+          setWeightIncrement(data.weightIncrement || 2.5)
+          setOverEstimateTolerance(data.overEstimateTolerance || 0.5)
         }
       }
     } catch (error) {
@@ -78,7 +84,9 @@ export default function ChangePriorityPage() {
           setMax,
           setMin,
           repsToSetsMultiplier,
-          weightRange
+          weightRange,
+          weightIncrement,
+          overEstimateTolerance
         })
       })
 
@@ -248,6 +256,39 @@ export default function ChangePriorityPage() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Weight changes must be within this range
+              </p>
+            </div>
+            <div className="p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Weight Increment (lbs)
+              </label>
+              <input
+                type="number"
+                value={weightIncrement}
+                onChange={(e) => setWeightIncrement(parseFloat(e.target.value))}
+                className="ios-input w-full"
+                step="0.5"
+                min="1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Round weights to nearest increment (2.5 lb standard, 5 lb, or 1 lb microplates)
+              </p>
+            </div>
+            <div className="p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Over-Estimate Tolerance (%)
+              </label>
+              <input
+                type="number"
+                value={overEstimateTolerance}
+                onChange={(e) => setOverEstimateTolerance(parseFloat(e.target.value))}
+                className="ios-input w-full"
+                step="0.1"
+                min="0"
+                max="2"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Allow load up to X% above target to avoid partial reps (e.g., 0.5% = accept slightly higher load)
               </p>
             </div>
           </div>

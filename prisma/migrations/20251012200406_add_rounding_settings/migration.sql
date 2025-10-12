@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "PriorityRules" ADD COLUMN     "overEstimateTolerance" DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+ADD COLUMN     "weightIncrement" DOUBLE PRECISION NOT NULL DEFAULT 2.5;

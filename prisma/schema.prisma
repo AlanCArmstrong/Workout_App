@@ -144,6 +144,10 @@ model PriorityRules {
   repsToSetsMultiplier Float @default(2.0)         // Reps must be > (X * Sets)
   weightRange          Float @default(10.0)        // Weight changes must be within ±X lbs
   
+  // Rounding settings
+  weightIncrement      Float @default(2.5)         // Round weight to nearest X lbs (2.5, 5, 1)
+  overEstimateTolerance Float @default(0.5)        // Allow X% over target to avoid partial reps
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

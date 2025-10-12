@@ -21,6 +21,7 @@ interface RotationDay {
   id: string
   dayNumber: number
   name: string
+  order: number
   exercises: DayExercise[]
 }
 
@@ -73,6 +74,48 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error toggling exercise:', error)
+    }
+  }
+
+  const completeWorkout = async () => {
+    if (!rotation) return
+
+    // Check if all exercises are completed
+    const allCompleted = currentDay?.exercises.every(ex => ex.completed)
+    
+    if (!allCompleted && !confirm('Not all exercises are checked off. Complete workout anyway?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/rotation/complete', {
+        method: 'POST'
+      })
+
+      if (response.ok) {
+        // Reload rotation data to show next day
+        await fetchRotation()
+      }
+    } catch (error) {
+      console.error('Error completing workout:', error)
+    }
+  }
+
+  const selectDay = async (dayIndex: number) => {
+    if (!rotation) return
+
+    try {
+      const response = await fetch('/api/rotation/select-day', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayIndex })
+      })
+
+      if (response.ok) {
+        await fetchRotation()
+      }
+    } catch (error) {
+      console.error('Error selecting day:', error)
     }
   }
 
@@ -134,6 +177,29 @@ export default function Home() {
 
       {/* Exercise List */}
       <main className="px-4 py-6">
+        {/* Day Selector */}
+        {rotation.days.length > 1 && (
+          <div className="mb-4">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {rotation.days
+                .sort((a, b) => a.order - b.order)
+                .map((day, index) => (
+                  <button
+                    key={day.id}
+                    onClick={() => selectDay(index)}
+                    className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
+                      index === rotation.currentDayIndex
+                        ? 'bg-ios-blue text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {day.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           {currentDay.exercises
             .sort((a, b) => a.order - b.order)
@@ -177,6 +243,15 @@ export default function Home() {
               Add Exercises
             </Link>
           </div>
+        )}
+
+        {currentDay.exercises.length > 0 && (
+          <button
+            onClick={completeWorkout}
+            className="w-full ios-button mt-6"
+          >
+            Complete Workout & Move to Next Day
+          </button>
         )}
       </main>
     </div>

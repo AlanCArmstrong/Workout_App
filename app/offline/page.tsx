@@ -1,6 +1,14 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 export default function OfflinePage() {
+  const handleReload = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload()
+    }
+  }
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-ios-gray px-4">
       <div className="text-center">
@@ -24,7 +32,7 @@ export default function OfflinePage() {
           Check your internet connection to sync your data
         </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={handleReload}
           className="ios-button inline-block"
         >
           Try Again

@@ -73,3 +73,90 @@ model WorkoutLog {
   @@index([sessionId])
   @@index([exerciseId])
 }
+
+// === NEW ROTATION-BASED WORKOUT SYSTEM ===
+
+model WorkoutRotation {
+  id              String          @id @default(cuid())
+  name            String          @default("My Rotation")
+  currentDayIndex Int             @default(0)      // Which day user is currently on (0-based)
+  lastWorkoutDate DateTime?                        // Track when last workout was completed
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  days            RotationDay[]
+  priorityRules   PriorityRules?
+  growthSettings  GrowthSettings?
+}
+
+model RotationDay {
+  id          String          @id @default(cuid())
+  rotationId  String
+  rotation    WorkoutRotation @relation(fields: [rotationId], references: [id], onDelete: Cascade)
+  dayNumber   Int                                  // 1, 2, 3, etc.
+  name        String          @default("Day")      // "Day 1", "Push Day", etc.
+  order       Int                                  // For custom ordering
+  
+  exercises   DayExercise[]
+  
+  @@unique([rotationId, dayNumber])
+  @@index([rotationId])
+}
+
+model DayExercise {
+  id          String      @id @default(cuid())
+  dayId       String
+  day         RotationDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  
+  // Exercise details
+  name        String                               // Exercise name
+  weight      Float                                // Current weight in lbs
+  reps        Int                                  // Current reps
+  sets        Int                                  // Current sets
+  partialReps Int         @default(0)              // Partial set reps (e.g., +1 rep for weird numbers)
+  
+  order       Int                                  // Order within the day
+  completed   Boolean     @default(false)          // Checkmark status for today
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([dayId])
+}
+
+model PriorityRules {
+  id          String          @id @default(cuid())
+  rotationId  String          @unique
+  rotation    WorkoutRotation @relation(fields: [rotationId], references: [id], onDelete: Cascade)
+  
+  // Priority order (1 = highest priority, 3 = lowest, partial sets always 4)
+  repPriority     Int     @default(1)
+  setPriority     Int     @default(2)
+  weightPriority  Int     @default(3)
+  // Partial sets are always last priority (hardcoded as 4)
+  
+  // Constraints
+  repMax      Int     @default(15)
+  repMin      Int     @default(8)
+  setMax      Int     @default(5)
+  setMin      Int     @default(3)
+  
+  repsToSetsMultiplier Float @default(2.0)         // Reps must be > (X * Sets)
+  weightRange          Float @default(10.0)        // Weight changes must be within ±X lbs
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GrowthSettings {
+  id          String          @id @default(cuid())
+  rotationId  String          @unique
+  rotation    WorkoutRotation @relation(fields: [rotationId], references: [id], onDelete: Cascade)
+  
+  growthType  String   @default("percent")         // "linear", "percent", "sigmoid"
+  amount      Float    @default(5.0)               // 5 lbs (linear) or 5% (percent)
+  frequency   String   @default("rotation")        // "day" (every workout), "rotation" (after full cycle), "week"
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

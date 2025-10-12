@@ -1,100 +1,184 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { formatExerciseDisplay, calculateTotalLoad } from '@/lib/rotation-progression'
+
+export const dynamic = 'force-dynamic'
+
+interface DayExercise {
+  id: string
+  name: string
+  weight: number
+  reps: number
+  sets: number
+  partialReps: number
+  completed: boolean
+  order: number
+}
+
+interface RotationDay {
+  id: string
+  dayNumber: number
+  name: string
+  exercises: DayExercise[]
+}
+
+interface WorkoutRotation {
+  id: string
+  name: string
+  currentDayIndex: number
+  days: RotationDay[]
+}
 
 export default function Home() {
+  const [rotation, setRotation] = useState<WorkoutRotation | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [currentDay, setCurrentDay] = useState<RotationDay | null>(null)
+
+  useEffect(() => {
+    fetchRotation()
+  }, [])
+
+  const fetchRotation = async () => {
+    try {
+      const response = await fetch('/api/rotation')
+      if (response.ok) {
+        const data = await response.json()
+        setRotation(data)
+        if (data?.days?.length > 0) {
+          setCurrentDay(data.days[data.currentDayIndex] || data.days[0])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching rotation:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleExerciseComplete = async (exerciseId: string) => {
+    try {
+      await fetch(`/api/rotation/exercises/${exerciseId}/toggle`, {
+        method: 'PATCH'
+      })
+      // Update local state
+      if (currentDay) {
+        setCurrentDay({
+          ...currentDay,
+          exercises: currentDay.exercises.map(ex =>
+            ex.id === exerciseId ? { ...ex, completed: !ex.completed } : ex
+          )
+        })
+      }
+    } catch (error) {
+      console.error('Error toggling exercise:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
+  }
+
+  // No rotation set up yet
+  if (!rotation || !currentDay) {
+    return (
+      <div className="min-h-screen pb-20">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="px-4 py-4 flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Today&apos;s Workout</h1>
+            <Link href="/settings" className="p-2">
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </Link>
+          </div>
+        </header>
+        <main className="px-4 py-6">
+          <div className="ios-card p-6 text-center space-y-4">
+            <h2 className="text-xl font-bold text-gray-800">No Workout Rotation Set Up</h2>
+            <p className="text-gray-600">
+              Get started by creating your workout rotation in settings.
+            </p>
+            <Link href="/settings/workout" className="ios-button block">
+              Set Up Rotation
+            </Link>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen pb-20">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <h1 className="text-2xl font-bold">Workout Progression</h1>
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Today&apos;s Workout</h1>
+            <p className="text-sm text-gray-500">{currentDay.name}</p>
+          </div>
+          <Link href="/settings" className="p-2">
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="px-4 py-6 space-y-6">
-        {/* Quick Actions */}
-        <section>
-          <h2 className="ios-section-header">Quick Actions</h2>
-          <div className="ios-card divide-y divide-gray-200">
-            <Link href="/exercises" className="ios-list-item flex items-center justify-between">
-              <span className="font-medium">My Exercises</span>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-            <Link href="/workouts" className="ios-list-item flex items-center justify-between">
-              <span className="font-medium">Workout History</span>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-            <Link href="/workouts/new" className="ios-list-item flex items-center justify-between">
-              <span className="font-medium text-ios-blue">Start New Workout</span>
-              <svg className="w-5 h-5 text-ios-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </Link>
-          </div>
-        </section>
-
-        {/* Stats Overview (Placeholder) */}
-        <section>
-          <h2 className="ios-section-header">Overview</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="ios-card p-4">
-              <div className="text-2xl font-bold text-ios-blue">0</div>
-              <div className="text-sm text-gray-600">Total Exercises</div>
-            </div>
-            <div className="ios-card p-4">
-              <div className="text-2xl font-bold text-ios-blue">0</div>
-              <div className="text-sm text-gray-600">Workouts Logged</div>
-            </div>
-          </div>
-        </section>
-
-        {/* Getting Started */}
-        <section>
-          <h2 className="ios-section-header">Getting Started</h2>
-          <div className="ios-card p-4 space-y-3">
-            <p className="text-gray-700">
-              Welcome to Workout Progression! This app helps you track your exercises and calculate progressive overload.
-            </p>
-            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
-              <li>Add your exercises</li>
-              <li>Set progression goals (weight, growth rate, frequency)</li>
-              <li>Log your workouts</li>
-              <li>Get recommendations for your next session</li>
-            </ol>
-            <Link href="/exercises/new" className="ios-button block text-center mt-4">
-              Add Your First Exercise
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe">
-        <div className="grid grid-cols-3 h-16">
-          <Link href="/" className="flex flex-col items-center justify-center text-ios-blue">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-            </svg>
-            <span className="text-xs mt-1">Home</span>
-          </Link>
-          <Link href="/exercises" className="flex flex-col items-center justify-center text-gray-400">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span className="text-xs mt-1">Exercises</span>
-          </Link>
-          <Link href="/workouts" className="flex flex-col items-center justify-center text-gray-400">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span className="text-xs mt-1">Workouts</span>
-          </Link>
+      {/* Exercise List */}
+      <main className="px-4 py-6">
+        <div className="space-y-3">
+          {currentDay.exercises
+            .sort((a, b) => a.order - b.order)
+            .map((exercise) => (
+              <div
+                key={exercise.id}
+                className="ios-card p-4 flex items-start justify-between"
+              >
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">{exercise.name}</h3>
+                  <p className="text-sm text-gray-600">
+                    {formatExerciseDisplay(exercise)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total Load: {calculateTotalLoad(exercise).toLocaleString()} lb
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggleExerciseComplete(exercise.id)}
+                  className={`ml-4 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    exercise.completed
+                      ? 'bg-ios-blue border-ios-blue'
+                      : 'border-gray-300 hover:border-ios-blue'
+                  }`}
+                  aria-label={exercise.completed ? 'Mark incomplete' : 'Mark complete'}
+                >
+                  {exercise.completed && (
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            ))}
         </div>
-      </nav>
+
+        {currentDay.exercises.length === 0 && (
+          <div className="ios-card p-6 text-center">
+            <p className="text-gray-500">No exercises for today</p>
+            <Link href="/settings/workout" className="text-ios-blue text-sm mt-2 inline-block">
+              Add Exercises
+            </Link>
+          </div>
+        )}
+      </main>
     </div>
   )
 }

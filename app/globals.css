@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply text-gray-900;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* iOS safe area support */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@layer components {
+  /* iOS-style card */
+  .ios-card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200;
+  }
+
+  /* iOS-style list item */
+  .ios-list-item {
+    @apply bg-white px-4 py-3 border-b border-gray-200 last:border-b-0 active:bg-gray-50 transition-colors;
+  }
+
+  /* iOS-style button */
+  .ios-button {
+    @apply bg-ios-blue text-white font-semibold py-3 px-6 rounded-xl active:bg-blue-600 transition-colors;
+  }
+
+  .ios-button-secondary {
+    @apply bg-gray-200 text-gray-900 font-semibold py-3 px-6 rounded-xl active:bg-gray-300 transition-colors;
+  }
+
+  /* iOS-style input */
+  .ios-input {
+    @apply w-full px-4 py-3 bg-white border border-ios-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ios-blue focus:border-transparent;
+  }
+
+  /* iOS-style section header */
+  .ios-section-header {
+    @apply text-xs uppercase tracking-wide text-gray-500 font-semibold px-4 py-2 bg-ios-gray;
+  }
+}

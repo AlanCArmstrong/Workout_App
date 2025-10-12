@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String?  // e.g., "chest", "legs", "back"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  progressionSettings ProgressionSettings?
+  workoutLogs         WorkoutLog[]
+
+  @@index([name])
+}
+
+model ProgressionSettings {
+  id              String   @id @default(cuid())
+  exerciseId      String   @unique
+  exercise        Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  
+  // Current stats
+  currentWeight   Float    // in pounds
+  currentReps     Int      @default(10)
+  currentSets     Int      @default(3)
+  
+  // Progression settings
+  progressionType String   @default("linear") // "linear", "exponential", "percentage"
+  growthRate      Float    @default(5.0)      // amount or percentage to increase
+  frequency       String   @default("per_workout") // "per_workout", "per_rotation", "weekly", "bi_weekly"
+  
+  // Metadata
+  lastUpdated     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
+model WorkoutSession {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  notes       String?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  workoutLogs WorkoutLog[]
+
+  @@index([date])
+}
+
+model WorkoutLog {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   WorkoutSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  exerciseId String
+  exercise   Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  
+  // What was actually performed
+  weight    Float
+  reps      Int
+  sets      Int
+  completed Boolean        @default(true)
+  notes     String?
+  
+  createdAt DateTime       @default(now())
+
+  @@index([sessionId])
+  @@index([exerciseId])
+}

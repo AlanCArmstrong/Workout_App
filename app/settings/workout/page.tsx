@@ -34,6 +34,8 @@ export default function ChangeWorkoutPage() {
   const router = useRouter()
   const [rotation, setRotation] = useState<WorkoutRotation | null>(null)
   const [loading, setLoading] = useState(true)
+  const [editingDayId, setEditingDayId] = useState<string | null>(null)
+  const [editingDayName, setEditingDayName] = useState('')
 
   useEffect(() => {
     fetchRotation()
@@ -90,6 +92,28 @@ export default function ChangeWorkoutPage() {
     } catch (error) {
       console.error('Error adding day:', error)
     }
+  }
+
+  const updateDayName = async (dayId: string) => {
+    try {
+      const response = await fetch(`/api/rotation/days/${dayId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editingDayName })
+      })
+      if (response.ok) {
+        setEditingDayId(null)
+        setEditingDayName('')
+        await fetchRotation()
+      }
+    } catch (error) {
+      console.error('Error updating day name:', error)
+    }
+  }
+
+  const startEditingDayName = (day: RotationDay) => {
+    setEditingDayId(day.id)
+    setEditingDayName(day.name)
   }
 
   const calculateTotalLoad = (exercise: DayExercise) => {
@@ -160,14 +184,51 @@ export default function ChangeWorkoutPage() {
                 .sort((a, b) => a.order - b.order)
                 .map((day) => (
                   <div key={day.id} className="ios-card">
-                    <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-lg">{day.name}</h3>
-                      <Link
-                        href={`/settings/workout/day/${day.id}`}
-                        className="text-ios-blue text-sm font-medium"
-                      >
-                        Edit Exercises
-                      </Link>
+                    <div className="p-4 border-b border-gray-200">
+                      {editingDayId === day.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingDayName}
+                            onChange={(e) => setEditingDayName(e.target.value)}
+                            className="ios-input flex-1"
+                            placeholder="Day name"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => updateDayName(day.id)}
+                            className="px-3 py-2 text-ios-blue font-medium"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingDayId(null)}
+                            className="px-3 py-2 text-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg">{day.name}</h3>
+                            <button
+                              onClick={() => startEditingDayName(day)}
+                              className="p-1 text-gray-400 hover:text-ios-blue"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          </div>
+                          <Link
+                            href={`/settings/workout/day/${day.id}`}
+                            className="text-ios-blue text-sm font-medium"
+                          >
+                            Edit Exercises
+                          </Link>
+                        </div>
+                      )}
                     </div>
                     
                     {day.exercises.length === 0 ? (

@@ -66,7 +66,9 @@ export async function POST(request: Request) {
           create: {
             growthType: 'percent',
             amount: 5.0,
-            frequency: 'rotation'
+            frequency: 'rotation',
+            decayRate: 0.01,
+            iterationCount: 0
           }
         }
       },

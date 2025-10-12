@@ -34,3 +34,27 @@ export async function GET(
     )
   }
 }
+
+// PATCH - Update day name
+export async function PATCH(
+  request: Request,
+  { params }: { params: { dayId: string } }
+) {
+  try {
+    const body = await request.json()
+    const { name } = body
+
+    const day = await prisma.rotationDay.update({
+      where: { id: params.dayId },
+      data: { name }
+    })
+
+    return NextResponse.json(day)
+  } catch (error) {
+    console.error('Error updating day:', error)
+    return NextResponse.json(
+      { error: 'Failed to update day' },
+      { status: 500 }
+    )
+  }
+}

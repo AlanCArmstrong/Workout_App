@@ -11,6 +11,8 @@ interface GrowthSettings {
   growthType: string
   amount: number
   frequency: string
+  decayRate: number
+  iterationCount: number
 }
 
 export default function ChangeGrowthRatePage() {
@@ -22,6 +24,7 @@ export default function ChangeGrowthRatePage() {
   const [growthType, setGrowthType] = useState('percent')
   const [amount, setAmount] = useState(5.0)
   const [frequency, setFrequency] = useState('rotation')
+  const [decayRate, setDecayRate] = useState(0.01)
 
   useEffect(() => {
     fetchSettings()
@@ -37,6 +40,7 @@ export default function ChangeGrowthRatePage() {
           setGrowthType(data.growthType)
           setAmount(data.amount)
           setFrequency(data.frequency)
+          setDecayRate(data.decayRate || 0.01)
         }
       }
     } catch (error) {
@@ -54,7 +58,8 @@ export default function ChangeGrowthRatePage() {
         body: JSON.stringify({
           growthType,
           amount,
-          frequency
+          frequency,
+          decayRate
         })
       })
 
@@ -128,7 +133,7 @@ export default function ChangeGrowthRatePage() {
             <label className="p-4 flex items-center justify-between cursor-pointer">
               <div>
                 <div className="font-medium">Sigmoid</div>
-                <div className="text-sm text-gray-500">Coming soon - we&apos;ll work on this together</div>
+                <div className="text-sm text-gray-500">Percentage with decay (slows over time)</div>
               </div>
               <input
                 type="radio"
@@ -137,7 +142,6 @@ export default function ChangeGrowthRatePage() {
                 checked={growthType === 'sigmoid'}
                 onChange={(e) => setGrowthType(e.target.value)}
                 className="w-5 h-5 text-ios-blue"
-                disabled
               />
             </label>
           </div>
@@ -148,23 +152,62 @@ export default function ChangeGrowthRatePage() {
           <h2 className="ios-section-header">Growth Amount</h2>
           <div className="ios-card p-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {growthType === 'linear' ? 'Amount (lbs)' : 'Amount (%)'}
+              {growthType === 'linear' ? 'Amount (lbs)' : growthType === 'sigmoid' ? 'Initial % Growth' : 'Amount (%)'}
             </label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(parseFloat(e.target.value))}
               className="ios-input w-full"
-              step={growthType === 'linear' ? '5' : '1'}
+              step={growthType === 'linear' ? '5' : '0.1'}
               min="0"
             />
             <p className="text-xs text-gray-500 mt-2">
               {growthType === 'linear'
                 ? 'Fixed weight to add when progressing'
+                : growthType === 'sigmoid'
+                ? 'Starting percentage growth (will decay over time)'
                 : 'Percentage of current weight to add when progressing'}
             </p>
           </div>
         </section>
+
+        {/* Sigmoid-specific settings */}
+        {growthType === 'sigmoid' && (
+          <section>
+            <h2 className="ios-section-header">Sigmoid Decay Settings</h2>
+            <div className="ios-card divide-y divide-gray-200">
+              <div className="p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Decay Rate (% per iteration)
+                </label>
+                <input
+                  type="number"
+                  value={decayRate}
+                  onChange={(e) => setDecayRate(parseFloat(e.target.value))}
+                  className="ios-input w-full"
+                  step="0.01"
+                  min="0"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  How much the growth percentage decreases each iteration
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Example: 0.01% decay = growth stops after {Math.floor(amount / decayRate)} iterations
+                </p>
+              </div>
+              {settings && (
+                <div className="p-4 bg-gray-50">
+                  <div className="text-sm font-medium text-gray-700 mb-1">Current Progress</div>
+                  <div className="text-2xl font-bold text-ios-blue">{settings.iterationCount} iterations</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Current growth: {Math.max(0, amount - (decayRate * settings.iterationCount)).toFixed(2)}%
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Frequency */}
         <section>

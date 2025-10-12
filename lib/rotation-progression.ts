@@ -25,6 +25,8 @@ interface GrowthSettings {
   growthType: 'linear' | 'percent' | 'sigmoid'
   amount: number
   frequency: 'day' | 'rotation' | 'week'
+  decayRate: number
+  iterationCount: number
 }
 
 interface Priority {
@@ -180,9 +182,11 @@ function calculateWeightIncrease(currentWeight: number, settings: GrowthSettings
       return currentWeight * (settings.amount / 100)  // e.g., +5%
     
     case 'sigmoid':
-      // TODO: Implement sigmoid curve (will work on this together)
-      // For now, use linear
-      return settings.amount
+      // Sigmoid: Percentage growth with decay
+      // Formula: currentPercent = initialPercent - (decayRate * iterationCount)
+      // Example: 1% - (0.01% * iteration) = stops at 100 iterations (0% growth)
+      const currentPercent = Math.max(0, settings.amount - (settings.decayRate * settings.iterationCount))
+      return currentWeight * (currentPercent / 100)
     
     default:
       return settings.amount

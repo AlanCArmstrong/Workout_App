@@ -149,14 +149,18 @@ model PriorityRules {
 }
 
 model GrowthSettings {
-  id          String          @id @default(cuid())
-  rotationId  String          @unique
-  rotation    WorkoutRotation @relation(fields: [rotationId], references: [id], onDelete: Cascade)
+  id             String          @id @default(cuid())
+  rotationId     String          @unique
+  rotation       WorkoutRotation @relation(fields: [rotationId], references: [id], onDelete: Cascade)
   
-  growthType  String   @default("percent")         // "linear", "percent", "sigmoid"
-  amount      Float    @default(5.0)               // 5 lbs (linear) or 5% (percent)
-  frequency   String   @default("rotation")        // "day" (every workout), "rotation" (after full cycle), "week"
+  growthType     String   @default("percent")         // "linear", "percent", "sigmoid"
+  amount         Float    @default(5.0)               // 5 lbs (linear) or 5% (percent) or initial % (sigmoid)
+  frequency      String   @default("rotation")        // "day" (every workout), "rotation" (after full cycle), "week"
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Sigmoid-specific settings
+  decayRate      Float    @default(0.01)              // Decay per iteration (e.g., -0.01% per iteration)
+  iterationCount Int      @default(0)                 // How many periods have passed (for sigmoid tracking)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

@@ -28,7 +28,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { growthType, amount, frequency } = body
+    const { growthType, amount, frequency, decayRate } = body
 
     const rotation = await prisma.workoutRotation.findFirst()
     if (!rotation) {
@@ -43,13 +43,15 @@ export async function PATCH(request: Request) {
       update: {
         growthType,
         amount,
-        frequency
+        frequency,
+        ...(decayRate !== undefined && { decayRate })
       },
       create: {
         rotationId: rotation.id,
         growthType,
         amount,
-        frequency
+        frequency,
+        decayRate: decayRate ?? 0.01
       }
     })
 

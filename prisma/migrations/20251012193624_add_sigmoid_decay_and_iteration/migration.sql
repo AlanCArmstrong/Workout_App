@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "GrowthSettings" ADD COLUMN     "decayRate" DOUBLE PRECISION NOT NULL DEFAULT 0.01,
+ADD COLUMN     "iterationCount" INTEGER NOT NULL DEFAULT 0;

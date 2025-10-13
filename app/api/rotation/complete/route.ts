@@ -56,7 +56,11 @@ export async function POST() {
         const progressed = calculateNextProgression(
           exercise,
           rotation.priorityRules,
-          rotation.growthSettings
+          {
+            ...rotation.growthSettings,
+            growthType: rotation.growthSettings.growthType as 'linear' | 'percent' | 'sigmoid',
+            frequency: rotation.growthSettings.frequency as 'day' | 'rotation' | 'week'
+          }
         )
 
         // Update exercise with new values

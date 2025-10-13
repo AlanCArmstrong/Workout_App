@@ -38,6 +38,7 @@ export default function EditDayPage() {
 
   useEffect(() => {
     fetchDay()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchDay = async () => {

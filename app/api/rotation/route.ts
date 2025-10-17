@@ -57,7 +57,7 @@ export async function POST(request: Request) {
             repMax: 15,
             repMin: 8,
             setMax: 5,
-            setMin: 3,
+            setMin: 2,
             repsToSetsMultiplier: 2.0,
             weightRange: 10.0,
             weightIncrement: 2.5,

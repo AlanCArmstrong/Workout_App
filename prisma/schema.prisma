@@ -139,7 +139,7 @@ model PriorityRules {
   repMax      Int     @default(15)
   repMin      Int     @default(8)
   setMax      Int     @default(5)
-  setMin      Int     @default(3)
+  setMin      Int     @default(2)
   
   repsToSetsMultiplier Float @default(2.0)         // Reps must be > (X * Sets)
   weightRange          Float @default(10.0)        // Weight changes must be within ±X lbs

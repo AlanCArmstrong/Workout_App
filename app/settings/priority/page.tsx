@@ -33,7 +33,7 @@ export default function ChangePriorityPage() {
   const [repMax, setRepMax] = useState(15)
   const [repMin, setRepMin] = useState(8)
   const [setMax, setSetMax] = useState(5)
-  const [setMin, setSetMin] = useState(3)
+  const [setMin, setSetMin] = useState(2)
   const [repsToSetsMultiplier, setRepsToSetsMultiplier] = useState(2.0)
   const [weightRange, setWeightRange] = useState(10.0)
   const [weightIncrement, setWeightIncrement] = useState(2.5)

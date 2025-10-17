@@ -44,184 +44,129 @@ function roundWeight(weight: number, increment: number): number {
 }
 
 /**
- * Calculate partial reps needed to match target load
- * Returns rounded partial reps
- */
-function calculatePartialReps(
-  currentLoad: number,
-  targetLoad: number,
-  weight: number,
-  tolerancePercent: number
-): number {
-  const loadGap = targetLoad - currentLoad
-  
-  // If we're within tolerance above target, no partial reps needed
-  const tolerance = targetLoad * (tolerancePercent / 100)
-  if (loadGap < 0 && Math.abs(loadGap) <= tolerance) {
-    return 0
-  }
-  
-  // If we're below target, calculate partial reps
-  if (loadGap > 0) {
-    const partialReps = Math.round(loadGap / weight)
-    return Math.max(0, partialReps)
-  }
-  
-  return 0
-}
-
-/**
- * Calculate the next progression for an exercise based on priority rules
+ * Calculate the next progression for an exercise using optimization
+ * Finds the best combination of reps, sets, weight, and partials that gets closest to target load
  */
 export function calculateNextProgression(
   exercise: DayExercise,
   priorityRules: PriorityRules,
   growthSettings: GrowthSettings
 ): DayExercise {
-  // Sort priorities (1 = highest, partial always 4)
-  const priorities: Priority[] = [
-    { type: 'rep' as const, priority: priorityRules.repPriority },
-    { type: 'set' as const, priority: priorityRules.setPriority },
-    { type: 'weight' as const, priority: priorityRules.weightPriority },
-    { type: 'partial' as const, priority: 4 }
-  ].sort((a, b) => a.priority - b.priority)
-
-  // Try each progression type in priority order
-  for (const priority of priorities) {
-    switch (priority.type) {
-      case 'rep':
-        if (canIncreaseReps(exercise, priorityRules)) {
-          return increaseReps(exercise)
+  // Calculate current total load
+  const currentLoad = calculateTotalLoad(exercise)
+  
+  // Calculate target load based on growth settings
+  let targetLoad: number
+  
+  if (growthSettings.growthType === 'linear') {
+    // Linear: Add fixed amount to each rep
+    // Target = current + (growth_amount * current_reps_total)
+    const totalReps = exercise.reps * exercise.sets + exercise.partialReps
+    targetLoad = currentLoad + (growthSettings.amount * totalReps)
+  } else {
+    // Percent and Sigmoid: Multiply by percentage
+    const growthPercent = calculateWeightIncrease(exercise.weight, growthSettings) / exercise.weight
+    targetLoad = currentLoad * (1 + growthPercent)
+  }
+  
+  // Generate possible values for each parameter
+  const possibleReps: number[] = []
+  for (let r = priorityRules.repMin; r <= priorityRules.repMax; r++) {
+    possibleReps.push(r)
+  }
+  
+  const possibleSets: number[] = []
+  for (let s = priorityRules.setMin; s <= priorityRules.setMax; s++) {
+    possibleSets.push(s)
+  }
+  
+  // Possible weights: current -2.5, current, current +2.5, current +5
+  // (rounded to weightIncrement)
+  const possibleWeights: number[] = [
+    roundWeight(exercise.weight - 2.5, priorityRules.weightIncrement),
+    roundWeight(exercise.weight, priorityRules.weightIncrement),
+    roundWeight(exercise.weight + 2.5, priorityRules.weightIncrement),
+    roundWeight(exercise.weight + 5, priorityRules.weightIncrement),
+  ].filter((w, i, arr) => w > 0 && arr.indexOf(w) === i) // Remove duplicates and negatives
+  
+  const possiblePartials: number[] = []
+  for (let p = 0; p <= 20; p++) {
+    possiblePartials.push(p)
+  }
+  
+  // Generate all combinations and find the best one
+  interface Combination {
+    reps: number
+    sets: number
+    weight: number
+    partials: number
+    load: number
+    distance: number
+  }
+  
+  const combinations: Combination[] = []
+  
+  for (const reps of possibleReps) {
+    for (const sets of possibleSets) {
+      for (const weight of possibleWeights) {
+        for (const partials of possiblePartials) {
+          // Check constraints
+          if (reps <= sets * priorityRules.repsToSetsMultiplier) {
+            continue // Skip: reps must be > (sets * multiplier)
+          }
+          
+          // Calculate total load for this combination
+          const load = weight * reps * sets + weight * partials
+          
+          // Only consider combinations that meet or exceed target
+          // Or if nothing meets target, consider all
+          const distance = Math.abs(load - targetLoad)
+          
+          combinations.push({
+            reps,
+            sets,
+            weight,
+            partials,
+            load,
+            distance
+          })
         }
-        break
-      
-      case 'set':
-        if (canIncreaseSets(exercise, priorityRules)) {
-          return increaseSets(exercise, priorityRules)
-        }
-        break
-      
-      case 'weight':
-        if (canIncreaseWeight(exercise, priorityRules, growthSettings)) {
-          return increaseWeight(exercise, growthSettings, priorityRules)
-        }
-        break
-      
-      case 'partial':
-        // Partial reps are always possible as last resort
-        return increasePartialReps(exercise)
+      }
     }
   }
-
-  // If somehow nothing worked, return unchanged
-  return exercise
-}
-
-/**
- * Check if reps can be increased
- * - Must not exceed repMax
- * - Must maintain reps > (multiplier * sets) constraint
- */
-function canIncreaseReps(exercise: DayExercise, rules: PriorityRules): boolean {
-  const newReps = exercise.reps + 1
   
-  // Check max constraint
-  if (newReps > rules.repMax) return false
-  
-  // Check reps > (multiplier * sets) constraint
-  if (newReps <= rules.repsToSetsMultiplier * exercise.sets) return false
-  
-  return true
-}
-
-/**
- * Increase reps by 1
- */
-function increaseReps(exercise: DayExercise): DayExercise {
-  return {
-    ...exercise,
-    reps: exercise.reps + 1
+  if (combinations.length === 0) {
+    // No valid combinations, return unchanged
+    return exercise
   }
-}
-
-/**
- * Check if sets can be increased
- * - Must not exceed setMax
- * - Must maintain reps > (multiplier * sets) constraint after increase
- */
-function canIncreaseSets(exercise: DayExercise, rules: PriorityRules): boolean {
-  const newSets = exercise.sets + 1
   
-  // Check max constraint
-  if (newSets > rules.setMax) return false
+  // Filter to combinations >= target load (never under-estimate)
+  const meetsTarget = combinations.filter(c => c.load >= targetLoad)
+  const validCombos = meetsTarget.length > 0 ? meetsTarget : combinations
   
-  // Check reps > (multiplier * sets) constraint with new set count
-  if (exercise.reps <= rules.repsToSetsMultiplier * newSets) return false
+  // Sort by distance from target (ascending) - find closest match
+  validCombos.sort((a, b) => a.distance - b.distance)
   
-  return true
-}
-
-/**
- * Increase sets by 1, reset reps to minimum
- */
-function increaseSets(exercise: DayExercise, rules: PriorityRules): DayExercise {
-  return {
-    ...exercise,
-    sets: exercise.sets + 1,
-    reps: rules.repMin  // Reset to minimum reps when adding a set
+  // Return the best combination (closest to target)
+  let best = validCombos[0]
+  
+  // Post-process: If partial reps > reps, consolidate into full sets
+  // Example: 10 reps, 3 sets, 12 partials → 10 reps, 4 sets, 2 partials
+  let finalReps = best.reps
+  let finalSets = best.sets
+  let finalPartials = best.partials
+  
+  while (finalPartials >= finalReps && finalSets < priorityRules.setMax) {
+    finalSets += 1
+    finalPartials -= finalReps
   }
-}
-
-/**
- * Check if weight can be increased
- * - Must be within weightRange constraint
- */
-function canIncreaseWeight(
-  exercise: DayExercise,
-  rules: PriorityRules,
-  settings: GrowthSettings
-): boolean {
-  const increase = calculateWeightIncrease(exercise.weight, settings)
-  
-  // Check if increase is within allowed range
-  return Math.abs(increase) <= rules.weightRange
-}
-
-/**
- * Increase weight, reset reps and sets to minimum
- * Applies rounding and calculates partial reps from leftover load
- */
-function increaseWeight(
-  exercise: DayExercise,
-  settings: GrowthSettings,
-  rules: PriorityRules
-): DayExercise {
-  const increase = calculateWeightIncrease(exercise.weight, settings)
-  
-  // Calculate target total load
-  const currentTotalLoad = calculateTotalLoad(exercise)
-  const targetTotalLoad = currentTotalLoad + (increase * rules.repMin * rules.setMin)
-  
-  // Round new weight to nearest increment
-  const newWeight = roundWeight(exercise.weight + increase, rules.weightIncrement)
-  
-  // Calculate load with new weight at minimum reps/sets
-  const newBaseLoad = newWeight * rules.repMin * rules.setMin
-  
-  // Calculate partial reps to match target load
-  const partialReps = calculatePartialReps(
-    newBaseLoad,
-    targetTotalLoad,
-    newWeight,
-    rules.overEstimateTolerance
-  )
   
   return {
     ...exercise,
-    weight: newWeight,
-    reps: rules.repMin,   // Reset to minimum
-    sets: rules.setMin,   // Reset to minimum
-    partialReps           // Calculated from load gap
+    reps: finalReps,
+    sets: finalSets,
+    weight: best.weight,
+    partialReps: finalPartials
   }
 }
 
@@ -245,16 +190,6 @@ function calculateWeightIncrease(currentWeight: number, settings: GrowthSettings
     
     default:
       return settings.amount
-  }
-}
-
-/**
- * Add one partial rep (last resort)
- */
-function increasePartialReps(exercise: DayExercise): DayExercise {
-  return {
-    ...exercise,
-    partialReps: exercise.partialReps + 1
   }
 }
 

@@ -35,6 +35,7 @@ export default function EditDayPage() {
   const [weight, setWeight] = useState('45')
   const [reps, setReps] = useState('10')
   const [sets, setSets] = useState('3')
+  const [partialReps, setPartialReps] = useState('0')
 
   useEffect(() => {
     fetchDay()
@@ -69,6 +70,7 @@ export default function EditDayPage() {
           weight: parseFloat(weight),
           reps: parseInt(reps),
           sets: parseInt(sets),
+          partialReps: parseInt(partialReps),
           order: day.exercises.length
         })
       })
@@ -78,6 +80,7 @@ export default function EditDayPage() {
         setWeight('45')
         setReps('10')
         setSets('3')
+        setPartialReps('0')
         setShowAddForm(false)
         await fetchDay()
       }
@@ -95,7 +98,8 @@ export default function EditDayPage() {
           name: exerciseName,
           weight: parseFloat(weight),
           reps: parseInt(reps),
-          sets: parseInt(sets)
+          sets: parseInt(sets),
+          partialReps: parseInt(partialReps)
         })
       })
       
@@ -131,6 +135,7 @@ export default function EditDayPage() {
     setWeight(exercise.weight.toString())
     setReps(exercise.reps.toString())
     setSets(exercise.sets.toString())
+    setPartialReps(exercise.partialReps.toString())
     setShowAddForm(false)
   }
 
@@ -178,7 +183,7 @@ export default function EditDayPage() {
                     className="ios-input w-full"
                     placeholder="Exercise name"
                   />
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-xs text-gray-600">Weight (lb)</label>
                       <input
@@ -206,6 +211,16 @@ export default function EditDayPage() {
                         className="ios-input w-full"
                       />
                     </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Partial Reps</label>
+                      <input
+                        type="number"
+                        value={partialReps}
+                        onChange={(e) => setPartialReps(e.target.value)}
+                        className="ios-input w-full"
+                        min="0"
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -229,6 +244,7 @@ export default function EditDayPage() {
                       <h3 className="font-semibold text-gray-900">{exercise.name}</h3>
                       <p className="text-sm text-gray-600">
                         {exercise.weight} lb × {exercise.reps} reps × {exercise.sets} sets
+                        {exercise.partialReps > 0 && ` + ${exercise.partialReps}`}
                       </p>
                     </div>
                   </div>
@@ -264,7 +280,7 @@ export default function EditDayPage() {
                 placeholder="Exercise name"
                 required
               />
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-gray-600">Weight (lb)</label>
                   <input
@@ -293,6 +309,16 @@ export default function EditDayPage() {
                     onChange={(e) => setSets(e.target.value)}
                     className="ios-input w-full"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600">Partial Reps</label>
+                  <input
+                    type="number"
+                    value={partialReps}
+                    onChange={(e) => setPartialReps(e.target.value)}
+                    className="ios-input w-full"
+                    min="0"
                   />
                 </div>
               </div>

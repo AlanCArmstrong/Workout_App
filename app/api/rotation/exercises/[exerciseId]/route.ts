@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json()
-    const { name, weight, reps, sets } = body
+    const { name, weight, reps, sets, partialReps } = body
 
     const exercise = await prisma.dayExercise.update({
       where: { id: params.exerciseId },
@@ -16,7 +16,8 @@ export async function PATCH(
         ...(name && { name }),
         ...(weight !== undefined && { weight: parseFloat(weight) }),
         ...(reps !== undefined && { reps: parseInt(reps) }),
-        ...(sets !== undefined && { sets: parseInt(sets) })
+        ...(sets !== undefined && { sets: parseInt(sets) }),
+        ...(partialReps !== undefined && { partialReps: parseInt(partialReps) })
       }
     })
 

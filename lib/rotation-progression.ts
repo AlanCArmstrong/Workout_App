@@ -80,12 +80,11 @@ export function calculateNextProgression(
     possibleSets.push(s)
   }
   
-  // Possible weights: current -2.5, current, current +2.5, current +5
+  // Possible weights: current -5, current, current +5
   // (rounded to weightIncrement)
   const possibleWeights: number[] = [
-    roundWeight(exercise.weight - 2.5, priorityRules.weightIncrement),
+    roundWeight(exercise.weight - 5, priorityRules.weightIncrement),
     roundWeight(exercise.weight, priorityRules.weightIncrement),
-    roundWeight(exercise.weight + 2.5, priorityRules.weightIncrement),
     roundWeight(exercise.weight + 5, priorityRules.weightIncrement),
   ].filter((w, i, arr) => w > 0 && arr.indexOf(w) === i) // Remove duplicates and negatives
   

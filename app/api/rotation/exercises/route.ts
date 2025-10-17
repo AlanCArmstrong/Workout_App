@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { dayId, name, weight, reps, sets, order } = body
+    const { dayId, name, weight, reps, sets, partialReps, order } = body
 
     const exercise = await prisma.dayExercise.create({
       data: {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         weight: parseFloat(weight),
         reps: parseInt(reps),
         sets: parseInt(sets),
-        partialReps: 0,
+        partialReps: parseInt(partialReps) || 0,
         order: order ?? 0,
         completed: false
       }

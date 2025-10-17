@@ -50,30 +50,33 @@ export async function POST() {
       rotation.growthSettings.frequency as 'day' | 'rotation' | 'week'
     )
 
-    // Apply progression to all exercises in current day if it's time
-    if (shouldApplyProgression && currentDay) {
-      for (const exercise of currentDay.exercises) {
-        const progressed = calculateNextProgression(
-          exercise,
-          rotation.priorityRules,
-          {
-            ...rotation.growthSettings,
-            growthType: rotation.growthSettings.growthType as 'linear' | 'percent' | 'sigmoid',
-            frequency: rotation.growthSettings.frequency as 'day' | 'rotation' | 'week'
-          }
-        )
+    // Apply progression to exercises
+    if (shouldApplyProgression) {
+      // Progress ALL days (for all frequency types)
+      for (const day of rotation.days) {
+        for (const exercise of day.exercises) {
+          const progressed = calculateNextProgression(
+            exercise,
+            rotation.priorityRules,
+            {
+              ...rotation.growthSettings,
+              growthType: rotation.growthSettings.growthType as 'linear' | 'percent' | 'sigmoid',
+              frequency: rotation.growthSettings.frequency as 'day' | 'rotation' | 'week'
+            }
+          )
 
-        // Update exercise with new values
-        await prisma.dayExercise.update({
-          where: { id: exercise.id },
-          data: {
-            weight: progressed.weight,
-            reps: progressed.reps,
-            sets: progressed.sets,
-            partialReps: progressed.partialReps,
-            completed: false // Reset for next session
-          }
-        })
+          // Update exercise with new values
+          await prisma.dayExercise.update({
+            where: { id: exercise.id },
+            data: {
+              weight: progressed.weight,
+              reps: progressed.reps,
+              sets: progressed.sets,
+              partialReps: progressed.partialReps,
+              completed: false // Reset for next session
+            }
+          })
+        }
       }
 
       // If sigmoid, increment iteration count
@@ -85,8 +88,8 @@ export async function POST() {
           }
         })
       }
-    } else {
-      // Just reset completed flags without progression
+    } else if (currentDay) {
+      // Just reset completed flags for current day without progression
       for (const exercise of currentDay.exercises) {
         await prisma.dayExercise.update({
           where: { id: exercise.id },
